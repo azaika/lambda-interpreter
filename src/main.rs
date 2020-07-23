@@ -19,6 +19,18 @@ fn main() {
     let match_result = app.get_matches();
 
     if let Some(lambda) = match_result.value_of("LAMBDA") {
-        println!("input recognized! : {:?}", lexer::tokenize(lambda.to_string()));
+        let tokens = lexer::tokenize(lambda);
+        if let Err(e) = &tokens {
+            println!("{}", e);
+            return;
+        }
+        let tokens = tokens.ok().unwrap();
+        let term = parser::parse(&tokens);
+        if let Err(e) = &term {
+            println!("{}", e);
+        }
+        let term = term.ok().unwrap();
+
+        println!("parsed! : {:?}", term);
     }
 }

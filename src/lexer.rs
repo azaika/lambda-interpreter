@@ -1,13 +1,6 @@
-use std::fmt;
+use super::types::*;
 
-#[derive(Debug)]
-pub enum Token {
-    Lambda,
-    Name(String),
-    Dot,
-    LBrace,
-    RBrace
-}
+use std::fmt;
 
 #[derive(Debug)]
 pub struct LexerError {
@@ -22,7 +15,7 @@ impl fmt::Display for LexerError {
 
 pub type LexerResult = Result<Vec<Token>, LexerError>;
 
-pub fn tokenize(source : String) -> LexerResult {
+pub fn tokenize(source : &str) -> LexerResult {
     let mut tokens : Vec<Token> = Vec::new();
 
     let mut buf : Option<String> = None;
