@@ -28,6 +28,7 @@ fn main() {
         let term = parser::parse(&tokens);
         if let Err(e) = &term {
             println!("{}", e);
+            return;
         }
         let term = term.ok().unwrap();
 

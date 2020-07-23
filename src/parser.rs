@@ -31,7 +31,7 @@ impl<'a> Parser<'a> {
         Parser{ tokens: tokens, name2id: HashMap::new(), id2name: HashMap::new(), used : 0, cursor : 0 }
     }
 
-    fn parse_short(&mut self) -> Result<Term, ParseError> {
+    fn parse_short(&mut self, is_braced : bool) -> Result<Term, ParseError> {
         if self.cursor >= self.tokens.len() {
             return Err(ParseError{ message: "the given lambda is incomplete.".to_string(), idx : self.cursor });
         }
@@ -51,7 +51,21 @@ impl<'a> Parser<'a> {
                 }
             },
             Token::LBrace => {
-                self.parse_long()
+                match self.parse_long(true) {
+                    Ok(t) => {
+                        if self.cursor >= self.tokens.len() {
+                            Err(ParseError{ message: "the given lambda is incomplete.".to_string(), idx : self.cursor })
+                        }
+                        else if let Token::RBrace = self.tokens[self.cursor] {
+                            self.cursor += 1;
+                            Ok(t)
+                        }
+                        else {
+                            Err(ParseError{ message: "the given lambda is incomplete.".to_string(), idx : self.cursor })
+                        }
+                    }
+                    Err(e) => Err(e)
+                }
             },
             Token::Lambda => {
                 if self.cursor + 2 >= self.tokens.len() {
@@ -61,11 +75,11 @@ impl<'a> Parser<'a> {
                     let prev_cursor = self.cursor;
                     if let Token::Name(ref name) = self.tokens[self.cursor] {
                         if let Token::Dot = self.tokens[self.cursor + 1] {
-                            let ret = match self.parse_short() {
+                            let ret = match self.parse_short(is_braced) {
                                 Ok(t) => {
                                     if let Term::Name(id) = t {
                                         self.cursor += 1;
-                                        match self.parse_long() {
+                                        match self.parse_long(is_braced) {
                                             Ok(t) => {
                                                 Ok(Term::Lambda(id, Box::new(t)))
                                             },
@@ -80,7 +94,6 @@ impl<'a> Parser<'a> {
                             };
                             
                             if ret.is_ok() {
-                                println!("{:?}", self.name2id);
                                 let id_stack = self.name2id.get_mut(name).unwrap();
                                 id_stack.pop();
                                 if id_stack.is_empty() {
@@ -101,12 +114,12 @@ impl<'a> Parser<'a> {
             tok => Err(ParseError{ message: format!("unexpected token '{}'.", &tok), idx : cur})
         }
     }
-    fn parse_long(&mut self) -> Result<Term, ParseError> {
+    fn parse_long(&mut self, is_braced : bool) -> Result<Term, ParseError> {
         if self.cursor >= self.tokens.len() {
             return Err(ParseError{ message: "the given lambda is incomplete.".to_string(), idx : self.cursor });
         }
         
-        let term = self.parse_short();
+        let term = self.parse_short(is_braced);
         if term.is_err() {
             return term;
         }
@@ -115,11 +128,15 @@ impl<'a> Parser<'a> {
         while self.cursor < self.tokens.len() {
             match self.tokens[self.cursor] {
                 Token::RBrace => {
-                    self.cursor += 1;
-                    return Ok(term);
+                    if is_braced {
+                        return Ok(term);
+                    }
+                    else {
+                        return Err(ParseError{ message: "unexpected token ')'.".to_string(), idx : self.cursor });
+                    }
                 },
                 _ => {
-                    match self.parse_short() {
+                    match self.parse_short(is_braced) {
                         Ok(t) => {
                             term = Term::Pair(Box::new(term), Box::new(t));
                         },
@@ -135,7 +152,7 @@ impl<'a> Parser<'a> {
 
 pub fn parse(tokens : &Vec<Token>) -> ParseResult {
     let mut parser = Parser::new(tokens);
-    match parser.parse_long() {
+    match parser.parse_long(false) {
         Ok(term) => Ok((term, parser.id2name)),
         Err(e) => Err(e)
     }
