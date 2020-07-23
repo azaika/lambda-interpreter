@@ -1,3 +1,7 @@
+mod types;
+mod lexer;
+mod parser;
+
 extern crate clap;
 
 use clap::{App, Arg};
@@ -15,6 +19,6 @@ fn main() {
     let match_result = app.get_matches();
 
     if let Some(lambda) = match_result.value_of("LAMBDA") {
-        println!("input recognized! : {}", lambda);
+        println!("input recognized! : {:?}", lexer::tokenize(lambda.to_string()));
     }
 }
