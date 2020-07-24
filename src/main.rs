@@ -1,6 +1,7 @@
 mod types;
 mod lexer;
 mod parser;
+mod reduction;
 
 extern crate clap;
 
@@ -30,8 +31,28 @@ fn main() {
             println!("{}", e);
             return;
         }
-        let term = term.ok().unwrap();
+        let (mut term, id2name) = term.ok().unwrap();
 
-        println!("parsed! : {:?}", term);
+        let mut red = reduction::Reducer::new(id2name);
+        let mut output : String = format!("{}", reduction::Formatter::new(&red, &term));
+
+        let mut is_updated = true;
+        while is_updated {
+            println!("→{}", output);
+
+            let (new_term, new_flag) = red.reduce(term);
+
+            let new_output = format!("{}", reduction::Formatter::new(&red, &new_term));
+
+            if new_flag && new_output == output {
+                println!("→{}", new_output);
+                println!("infinite loop!");
+                return;
+            }
+            
+            output = new_output;
+            term = new_term;
+            is_updated = new_flag;
+        }
     }
 }

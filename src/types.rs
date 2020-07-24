@@ -1,4 +1,5 @@
 use std::fmt;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -26,3 +27,17 @@ pub enum Term {
     Pair(Box<Term>, Box<Term>),
     Lambda(usize, Box<Term>)
 }
+
+impl Term {
+    // pub fn is_name(&self) -> bool {
+    //     if let Term::Name(_) = self { true } else { false }
+    // }
+    // pub fn is_pair(&self) -> bool {
+    //     if let Term::Pair(_, _) = self { true } else { false }
+    // }
+    pub fn is_lambda(&self) -> bool {
+        if let Term::Lambda(_, _) = self { true } else { false }
+    }
+}
+
+pub type NameMap = HashMap<usize, String>;

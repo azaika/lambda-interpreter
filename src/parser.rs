@@ -14,8 +14,6 @@ impl fmt::Display for ParseError {
     }
 }
 
-pub type NameMap = HashMap<usize, String>;
-
 pub type ParseResult = Result<(Term, NameMap), ParseError>;
 
 struct Parser<'a> {
@@ -75,6 +73,15 @@ impl<'a> Parser<'a> {
                     let prev_cursor = self.cursor;
                     if let Token::Name(ref name) = self.tokens[self.cursor] {
                         if let Token::Dot = self.tokens[self.cursor + 1] {
+                            self.used += 1;
+                            if let Some(id_stack) = self.name2id.get_mut(name) {
+                                id_stack.push(self.used);
+                            }
+                            else {
+                                self.name2id.insert(name.clone(), vec![self.used; 1]);
+                            }
+                            self.id2name.insert(self.used, name.clone());
+
                             let ret = match self.parse_short(is_braced) {
                                 Ok(t) => {
                                     if let Term::Name(id) = t {
