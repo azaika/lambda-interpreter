@@ -85,22 +85,21 @@ impl Reducer {
         }
     }
 
-    pub fn reduce(&mut self, term : Term) -> (Term, bool) {
+    pub fn reduce_left(&mut self, term : Term) -> (Term, bool) {
         match term {
             Term::Name(_) => { return (term, false); }
             Term::Pair(t1, t2) => {
-                let (t1, is_reduced) = self.reduce(*t1);
+                let (t1, is_reduced) = self.reduce_left(*t1);
                 if is_reduced {
                     return (Term::Pair(Box::new(t1), t2), true);
                 }
     
-                let (t2, is_reduced) = self.reduce(*t2);
+                let (t2, is_reduced) = self.reduce_left(*t2);
                 if is_reduced {
                     return (Term::Pair(Box::new(t1), Box::new(t2)), true);
                 }
     
                 if let Term::Lambda(id, inner) = t1 {
-                    // find all free variable in t2
                     let mut free_vars : HashSet<String> = HashSet::new();
                     self.find_free_var(&t2, &mut free_vars);
 
@@ -111,7 +110,32 @@ impl Reducer {
                 }
             },
             Term::Lambda(id, inner) => {
-                let (inner, is_reduced) = self.reduce(*inner);
+                let (inner, is_reduced) = self.reduce_left(*inner);
+                return (Term::Lambda(id, Box::new(inner)), is_reduced);
+            }
+        }
+    }
+
+    pub fn reduce_right(&mut self, term : Term) -> (Term, bool) {
+        match term {
+            Term::Name(_) => { return (term, false); }
+            Term::Pair(t1, t2) => {
+                if let Term::Lambda(id, inner) = *t1 {
+                    let mut free_vars : HashSet<String> = HashSet::new();
+                    self.find_free_var(t2.as_ref(), &mut free_vars);
+
+                    return (self.assign(id, *inner, &t2, &free_vars), true);
+                }
+                let (t2, is_reduced) = self.reduce_right(*t2);
+                if is_reduced {
+                    return (Term::Pair(t1, Box::new(t2)), true);
+                }
+    
+                let (t1, is_reduced) = self.reduce_right(*t1);
+                return (Term::Pair(Box::new(t1), Box::new(t2)), is_reduced);
+            },
+            Term::Lambda(id, inner) => {
+                let (inner, is_reduced) = self.reduce_right(*inner);
                 return (Term::Lambda(id, Box::new(inner)), is_reduced);
             }
         }
@@ -123,6 +147,7 @@ impl Reducer {
                 write!(f, "{}", self.id2name.get(id).unwrap())
             },
             Term::Pair(t1, t2) => {
+                // dirty hack (not preferable)
                 let _ = write!(f, "(");
                 let _ = self.format(t1.as_ref(), f);
                 let _ = write!(f, " ");
@@ -130,6 +155,7 @@ impl Reducer {
                 write!(f, ")")
             },
             Term::Lambda(id, inner) => {
+                // dirty hack (not preferable)
                 let _ = write!(f, "(λ{}.", self.id2name.get(id).unwrap());
                 let _ = self.format(inner.as_ref(), f);
                 write!(f, ")")

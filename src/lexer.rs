@@ -9,7 +9,7 @@ pub struct LexerError {
 }
 impl fmt::Display for LexerError {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid char {} at letter {}.", self.invalid_char, self.idx)
+        write!(f, "invalid char {} at letter {}.", self.invalid_char, self.idx + 1)
     }
 }
 

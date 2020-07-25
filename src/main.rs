@@ -1,7 +1,7 @@
 mod types;
 mod lexer;
 mod parser;
-mod reduction;
+mod reducer;
 
 extern crate clap;
 
@@ -15,6 +15,12 @@ fn main() {
             .help("set lambda to interpret like '\\x. x'")
             .required(true)
             .index(1)
+        )
+        .arg(Arg::with_name("eval")
+            .help("specify evaluation strategy (leftmost or rightmost)")
+            .takes_value(true)
+            .short("e")
+            .long("eval")
         );
     
     let match_result = app.get_matches();
@@ -28,21 +34,36 @@ fn main() {
         let tokens = tokens.ok().unwrap();
         let term = parser::parse(&tokens);
         if let Err(e) = &term {
+            println!("{:?}", tokens);
             println!("{}", e);
             return;
         }
         let (mut term, id2name) = term.ok().unwrap();
 
-        let mut red = reduction::Reducer::new(id2name);
-        let mut output : String = format!("{}", reduction::Formatter::new(&red, &term));
+        let mut red = reducer::Reducer::new(id2name);
+        let mut output : String = format!("{}", reducer::Formatter::new(&red, &term));
 
         let mut is_updated = true;
         while is_updated {
             println!("→{}", output);
 
-            let (new_term, new_flag) = red.reduce(term);
+            let (new_term, new_flag) = if let Some(st) = match_result.value_of("eval") {
+                if st == "leftmost" {
+                    red.reduce_left(term)
+                }
+                else if st == "rightmost" {
+                    red.reduce_right(term)
+                }
+                else {
+                    println!("error : invalid evaluation strategy.");
+                    return;
+                }
+            }
+            else {
+                red.reduce_left(term)
+            };
 
-            let new_output = format!("{}", reduction::Formatter::new(&red, &new_term));
+            let new_output = format!("{}", reducer::Formatter::new(&red, &new_term));
 
             if new_flag && new_output == output {
                 println!("→{}", new_output);

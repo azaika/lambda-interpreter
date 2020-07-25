@@ -114,11 +114,11 @@ impl<'a> Parser<'a> {
                         }
                     }
                     else {
-                        Err(ParseError{ message: "'\\' must be followed by a Name.".to_string(), idx : prev_cursor })
+                        Err(ParseError{ message: "'\\' must be followed by a Name.".to_string(), idx : prev_cursor + 1 })
                     }
                 }
             },
-            tok => Err(ParseError{ message: format!("unexpected token '{}'.", &tok), idx : cur})
+            tok => Err(ParseError{ message: format!("unexpected token '{}'.", &tok), idx : cur + 1 })
         }
     }
     fn parse_long(&mut self, is_braced : bool) -> Result<Term, ParseError> {
@@ -139,7 +139,7 @@ impl<'a> Parser<'a> {
                         return Ok(term);
                     }
                     else {
-                        return Err(ParseError{ message: "unexpected token ')'.".to_string(), idx : self.cursor });
+                        return Err(ParseError{ message: "unexpected token ')'.".to_string(), idx : self.cursor + 1 });
                     }
                 },
                 _ => {
